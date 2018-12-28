@@ -2396,7 +2396,7 @@ static struct snd_soc_dai_link msm_compr_fe_dai[] = {
 	{/* hw:x,43 */
 		.name = "APQ8009 Compress3",
 		.stream_name = "Compress3",
-		.cpu_dai_name = "MultiMedia10",
+		.cpu_dai_name = "MultiMedia17",
 		.platform_name = "msm-compress-dsp",
 		.dynamic = 1,
 		.dpcm_capture = 1,
@@ -2406,12 +2406,12 @@ static struct snd_soc_dai_link msm_compr_fe_dai[] = {
 		.codec_name = "snd-soc-dummy",
 		.ignore_suspend = 1,
 		.ignore_pmdown_time = 1,
-		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA10,
+		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA17,
 	},
 	{/* hw:x,44 */
 		.name = "APQ8009 Compress4",
 		.stream_name = "Compress4",
-		.cpu_dai_name = "MultiMedia11",
+		.cpu_dai_name = "MultiMedia18",
 		.platform_name = "msm-compress-dsp",
 		.dynamic = 1,
 		.dpcm_capture = 1,
@@ -2421,7 +2421,22 @@ static struct snd_soc_dai_link msm_compr_fe_dai[] = {
 		.codec_name = "snd-soc-dummy",
 		.ignore_suspend = 1,
 		.ignore_pmdown_time = 1,
-		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA11,
+		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA18,
+	},
+	{/* hw:x,45 */
+		.name = "APQ8009 Compress5",
+		.stream_name = "Compress5",
+		.cpu_dai_name = "MultiMedia19",
+		.platform_name = "msm-compress-dsp",
+		.dynamic = 1,
+		.dpcm_capture = 1,
+		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
+			SND_SOC_DPCM_TRIGGER_POST},
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.codec_name = "snd-soc-dummy",
+		.ignore_suspend = 1,
+		.ignore_pmdown_time = 1,
+		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA19,
 	},
 };
 
@@ -2789,6 +2804,7 @@ static int apq8009_asoc_machine_probe(struct platform_device *pdev)
 	const char *mclk = "qcom,msm-mclk-freq";
 	const char *type = NULL;
 	int ret, id;
+	int tdm_mic_mute_enable = -EINVAL;
 
 	pdata = devm_kzalloc(&pdev->dev,
 			sizeof(struct apq8009_asoc_mach_data), GFP_KERNEL);
@@ -2901,6 +2917,24 @@ static int apq8009_asoc_machine_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Looking up %s property in node %s failed\n",
 			"qcom,tdm-i2s-switch-enable",
 			pdev->dev.of_node->full_name);
+
+	tdm_mic_mute_enable = of_get_named_gpio(pdev->dev.of_node,
+				"qcom,tdm-mic-mute-enable", 0);
+	if (tdm_mic_mute_enable >= 0) {
+		dev_dbg(&pdev->dev, "%s: tdm mic mute gpio %d\n", __func__,
+			tdm_mic_mute_enable);
+		ret = gpio_request(tdm_mic_mute_enable, "TDM_MIC");
+		if (ret) {
+			pr_err("%s: Failed to request gpio\n", __func__);
+			goto err;
+		}
+		/* Pull down GPIO to unmute TDM mics */
+		gpio_direction_output(tdm_mic_mute_enable, 0);
+	} else {
+		dev_err(&pdev->dev, "Looking up %s property in node %s failed\n",
+			"qcom,tdm-mic-mute-enable",
+			pdev->dev.of_node->full_name);
+	}
 
 	return 0;
 err:
